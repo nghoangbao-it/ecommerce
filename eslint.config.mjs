@@ -2,9 +2,15 @@
 import eslint from '@eslint/js';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
-import tseslint from 'typescript-eslint';
+import tseslint, { parser } from 'typescript-eslint';
+import {defineConfig} from 'eslint/config'
 
-export default tseslint.config(
+export default defineConfig(
+  {
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+    }
+  },
   {
     ignores: ['eslint.config.mjs'],
   },
@@ -18,9 +24,11 @@ export default tseslint.config(
         ...globals.jest,
       },
       sourceType: 'commonjs',
+      parser: tseslint.parser,
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
+
       },
     },
   },
