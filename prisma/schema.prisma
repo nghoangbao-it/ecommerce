@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+
+
+// =======================
+// Enums
+// =======================
+enum UserStatus {
+  ACTIVE
+  BANNED
+}
+
+enum VerificationCodeType {
+  REGISTER
+  FORGOT_PASSWORD
+}
+
+enum HTTPMethod {
+  GET
+  POST
+  PUT
+  PATCH
+  DELETE
+  OPTIONS
+  HEAD
+}
+
+// =======================
+// Tables
+// =======================
+
+model Language {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String   @unique
+
+  createdById Int? 
+  createdBy   User?    @relation("LanguageCreatedBy", fields: [createdById], references: [id])
+  updatedById Int?
+  updatedBy   User?    @relation("LanguageUpdatedBy", fields: [updatedById], references: [id])
+
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  UserTranslation UserTranslation[]
+
+  @@index([deletedAt])
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  name         String
+  password     String
+  phoneNumber  String
+  avatar       String?
+  totpSecret   String?
+  status       UserStatus @default(ACTIVE)
+  roleId       Int
+  role         Role      @relation(fields: [roleId], references: [id])
+
+  createdById  Int?
+  createdBy    User?     @relation("UserCreatedBy", fields: [createdById], references: [id])
+  updatedById  Int?
+  updatedBy    User?     @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  UserTranslation    UserTranslation[]
+  RefreshToken       RefreshToken[]
+
+
+  @@index([deletedAt])
+  usersCreated User[] @relation("UserCreatedBy")
+  usersUpdated User[] @relation("UserUpdatedBy")
+  roleCreated Role[] @relation("RoleCreatedBy")
+  roleUpdated Role[] @relation("RoleUpdatedBy")
+  permissionsCreated Permission[] @relation("PermissionCreatedBy")
+  permissionsUpdated Permission[] @relation("PermissionUpdatedBy")
+  languageCreated    Language[] @relation("LanguageCreatedBy")
+  languageUpdated    Language[] @relation("LanguageUpdatedBy")
+  userTranslationCreated UserTranslation[] @relation("UserTranslationCreatedBy")
+  userTranslationUpdated UserTranslation[] @relation("UserTranslationUpdatedBy")
+}
+
+model UserTranslation {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  languageId  Int
+  language    Language @relation(fields: [languageId], references: [id])
+  address     String?
+  description String?
+
+  createdById Int?
+  createdBy   User?    @relation("UserTranslationCreatedBy", fields: [createdById], references: [id])
+  updatedById Int?
+  updatedBy   User?    @relation("UserTranslationUpdatedBy", fields: [updatedById], references: [id])
+
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, languageId])
+  @@index([deletedAt])
+}
+
+model VerificationCode {
+  id        Int                  @id @default(autoincrement())
+  email     String
+  code      String
+  type      VerificationCodeType
+  expiresAt DateTime
+  createdAt DateTime             @default(now())
+
+  @@index([email, code, type])
+  @@index([expiresAt])
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model Role {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique
+  description  String
+  isActive     Boolean  @default(true)
+
+  createdById  Int?
+  createdBy    User?    @relation("RoleCreatedBy", fields: [createdById], references: [id])
+  updatedById  Int?
+  updatedBy    User?    @relation("RoleUpdatedBy", fields: [updatedById], references: [id])
+
+  deletedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users        User[]
+  RolesPermissions RolesPermissions[]
+
+  @@index([deletedAt])
+}
+
+model Permission {
+  id           Int      @id @default(autoincrement())
+  name         String
+  description  String
+  path         String
+  method       HTTPMethod
+
+  createdById  Int?
+  createdBy    User?    @relation("PermissionCreatedBy", fields: [createdById], references: [id])
+  updatedById  Int?
+  updatedBy    User?    @relation("PermissionUpdatedBy", fields: [updatedById], references: [id])
+
+  deletedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  RolesPermissions RolesPermissions[]
+
+  @@index([deletedAt])
+}
+
+model RolesPermissions {
+  roleId       Int
+  role         Role       @relation(fields: [roleId], references: [id])
+  permissionId Int
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+}
